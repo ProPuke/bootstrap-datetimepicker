@@ -54,9 +54,12 @@
       this.pickTime = options.pickTime;
       this.isInput = this.$element.is('input');
       this.component = false;
+      this.dateSpecified = false;
+      this.timeSpecified = false;
       if (this.$element.find('.input-append') || this.$element.find('.input-prepend'))
           this.component = this.$element.find('.add-on');
       this.format = options.format;
+      this.dateFormat = options.dateFormat||options.format;
       if (!this.format) {
         if (this.isInput) this.format = this.$element.data('format');
         else this.format = this.$element.find('input').data('format');
@@ -156,7 +159,6 @@
       this.widget.hide();
       this.viewMode = this.startViewMode;
       this.showMode();
-      this.set();
       this.$element.trigger({
         type: 'hide',
         date: this._date
@@ -166,7 +168,7 @@
 
     set: function() {
       var formatted = '';
-      if (!this._unset) formatted = this.formatDate(this._date);
+      if (!this._unset) formatted = this.formatDate(this._date, this.timeSpecified);
       if (!this.isInput) {
         if (this.component){
           var input = this.$element.find('input');
@@ -183,13 +185,17 @@
     setValue: function(newDate) {
       if (!newDate) {
         this._unset = true;
+        this.dateSpecified = false;
+        this.timeSpecified = false;
       } else {
         this._unset = false;
-      }
-      if (typeof newDate === 'string') {
-        this._date = this.parseDate(newDate);
-      } else if(newDate) {
-        this._date = new Date(newDate);
+        if (typeof newDate === 'string') {
+          this._date = this.parseDate(newDate);
+        } else {
+          this._date = new Date(newDate);
+        }
+        this.dateSpecified = true;
+        this.timeSpecified = this._date.getUTCHours() || this._date.getUTCMinutes() || this._date.getUTCSeconds();
       }
       this.set();
       this.viewDate = UTCDate(this._date.getUTCFullYear(), this._date.getUTCMonth(), 1, 0, 0, 0, 0);
@@ -319,7 +325,13 @@
           this._date = this.parseDate(dateStr);
         }
         if (!this._date) {
-          var tmp = new Date()
+          var tmp = new Date();
+          if(this.pickDate){
+            tmp.setHours(0);
+            tmp.setMinutes(0);
+            tmp.setSeconds(0);
+            tmp.setMilliseconds(0);
+          }
           this._date = UTCDate(tmp.getFullYear(),
                               tmp.getMonth(),
                               tmp.getDate(),
@@ -640,26 +652,32 @@
     actions: {
       incrementHours: function(e) {
         this._date.setUTCHours(this._date.getUTCHours() + 1);
+        this.timeSpecified = true;
       },
 
       incrementMinutes: function(e) {
         this._date.setUTCMinutes(this._date.getUTCMinutes() + 1);
+        this.timeSpecified = true;
       },
 
       incrementSeconds: function(e) {
         this._date.setUTCSeconds(this._date.getUTCSeconds() + 1);
+        this.timeSpecified = true;
       },
 
       decrementHours: function(e) {
         this._date.setUTCHours(this._date.getUTCHours() - 1);
+        this.timeSpecified = true;
       },
 
       decrementMinutes: function(e) {
         this._date.setUTCMinutes(this._date.getUTCMinutes() - 1);
+        this.timeSpecified = true;
       },
 
       decrementSeconds: function(e) {
         this._date.setUTCSeconds(this._date.getUTCSeconds() - 1);
+        this.timeSpecified = true;
       },
 
       togglePeriod: function(e) {
@@ -667,6 +685,7 @@
         if (hour >= 12) hour -= 12;
         else hour += 12;
         this._date.setUTCHours(hour);
+        this.timeSpecified = true;
       },
 
       showPicker: function() {
@@ -703,12 +722,14 @@
         }
         this._date.setUTCHours(value);
         this.actions.showPicker.call(this);
+        this.timeSpecified = true;
       },
 
       selectMinute: function(e) {
         var tgt = $(e.target);
         var value = parseInt(tgt.text(), 10);
         this._date.setUTCMinutes(value);
+        this.timeSpecified = true;
         this.actions.showPicker.call(this);
       },
 
@@ -716,6 +737,7 @@
         var tgt = $(e.target);
         var value = parseInt(tgt.text(), 10);
         this._date.setUTCSeconds(value);
+        this.timeSpecified = true;
         this.actions.showPicker.call(this);
       }
     },
@@ -836,12 +858,13 @@
       this.component.removeData('datetimepicker');
     },
 
-    formatDate: function(d) {
-      return this.format.replace(formatReplacer, function(match) {
+    formatDate: function(d, include_time) {
+      if(!this.pickDate||include_time==undefined||include_time) include_time = true;
+      return this[include_time?'format':'dateFormat'].replace(formatReplacer, function(match) {
         var methodName, property, rv, len = match.length;
         if (match === 'ms')
           len = 1;
-        property = dateFormatComponents[match].property
+        property = dateFormatComponents[match].property;
         if (property === 'Hours12') {
           rv = d.getUTCHours();
           if (rv === 0) rv = 12;
@@ -849,7 +872,7 @@
         } else if (property === 'Period12') {
           if (d.getUTCHours() >= 12) return 'PM';
           else return 'AM';
-	} else if (property === 'UTCYear') {
+        } else if (property === 'UTCYear') {
           rv = d.getUTCFullYear();
           rv = rv.toString().substr(2);   
         } else {
@@ -972,7 +995,11 @@
             var collapseData = expanded.data('collapse');
             if (collapseData && collapseData.transitioning) return;
             expanded.collapse('hide');
-            closed.collapse('show')
+            closed.collapse('show');
+            if(closed.children('.timepicker').length){
+              self.timeSpecified = true;
+              self.set();
+            }
             $this.find('i').toggleClass(self.timeIcon + ' ' + self.dateIcon);
             self.$element.find('.add-on i').toggleClass(self.timeIcon + ' ' + self.dateIcon);
           }
