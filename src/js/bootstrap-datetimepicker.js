@@ -120,7 +120,9 @@
       this.fillMinutes();
       this.fillSeconds();
       this.update();
-      this.set();
+      if(this.$element.val()){
+        this.set();
+      }
       this.showMode();
       this._attachDatePickerEvents();
     },
