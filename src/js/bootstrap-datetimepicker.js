@@ -59,12 +59,12 @@
       if (this.$element.find('.input-append') || this.$element.find('.input-prepend'))
           this.component = this.$element.find('.add-on');
       this.format = options.format;
-      this.dateFormat = options.dateFormat||options.format;
       if (!this.format) {
         if (this.isInput) this.format = this.$element.data('format');
         else this.format = this.$element.find('input').data('format');
         if (!this.format) this.format = 'MM/dd/yyyy';
       }
+      this.dateFormat = options.dateFormat||this.format;
       this._compileFormat();
       if (this.component) {
         icon = this.component.find('i');
