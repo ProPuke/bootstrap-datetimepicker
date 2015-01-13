@@ -120,7 +120,7 @@
       this.fillMinutes();
       this.fillSeconds();
       this.update();
-      if(this.$element.val()){
+      if(this.$element.val()||this.$element.find('input').val()){
         this.set();
       }
       this.showMode();
@@ -326,6 +326,8 @@
         }
         if (dateStr) {
           this._date = this.parseDate(dateStr);
+          this.dateSpecified = true;
+          this.timeSpecified = this._date.getUTCHours() || this._date.getUTCMinutes() || this._date.getUTCSeconds();
         }
         if (!this._date) {
           var tmp = new Date();
